@@ -1,0 +1,64 @@
+Job Dashboard Master Prompt
+Save this prompt. If you ever need to rebuild this exact dashboard from scratch, paste this entire document into an AI assistant.
+
+System Prompt / User Request:
+
+"I want to build a highly aesthetic, premium Job Application Tracking Dashboard using Next.js (App Router) and Vanilla CSS. The backend data source will be a live Google Sheet accessed via a Google Cloud Service Account.
+
+Please follow these exact architectural requirements and feature specifications:
+
+1. Project Setup & Dependencies
+Initialize a Next.js project using TypeScript and the App Router.
+Dependencies to install: googleapis, google-auth-library, recharts, lucide-react (or similar for icons).
+Environment Variables: Require GOOGLE_OAUTH_SPREADSHEET_ID, GOOGLE_CLIENT_EMAIL, and GOOGLE_PRIVATE_KEY in .env.local.
+2. Google Sheets Data Integration (
+
+src/lib/google-sheets.ts
+)
+Use googleapis to fetch data server-side.
+Target Sheet1!A2:F.
+Exact Column Mapping rules:
+Column A (Index 0): Date Applied
+Column B (Index 1): Sender (Company)
+Column C (Index 2): Sender Email
+Column F (Index 5): Category (Status)
+Data Normalization: Write logic to consolidate 'Sender' names into clean Company names. For example: Re-map any email containing vic.gov.au or names containing Admin-NoReply to "Vic Gov". Re-map SEEK to "SEEK / Recruiter".
+Provide a robust 
+
+generateMockData()
+ fallback if the API fails or credentials are missing.
+3. Dashboard UI & CSS (
+
+src/app/globals.css
+)
+Aesthetics: Stunning dark mode (background #0B0C10), glassmorphism panels (semi-transparent backgrounds with subtle white borders and backdrop blurs), and fluid micro-animations (e.g., hover lifts, fade-in delays).
+Use a predefined color palette: Active/Primary (#8B5CF6), Rejected (#EF4444), Interview (#F59E0B), Offer (#10B981).
+Ensure the layout uses a responsive CSS Grid.
+4. Page Architecture (
+
+src/app/page.tsx
+)
+CRITICAL Next.js config: Include export const revalidate = 0; and export const dynamic = 'force-dynamic'; at the top of the file to completely disable Next.js caching, ensuring live Google Sheets data on every reload.
+Calculate the following top-level metrics:
+Total Applications
+Active Pipeline (Total Applications - Unsuccessful)
+Interviewed
+Offers Received
+Unsuccessful (Status includes 'reject', 'unsuccessful', or 'ghost')
+Calculate "Average per day" trends based on the date range of the dataset and pass them to the Metric Cards.
+5. Components required
+
+MetricCard.tsx
+: Displays the metric title, raw value, and a dynamic trend row at the bottom. If the trend is positive, show a green icon; if it is an unsuccessful trend, show a red icon.
+
+TimelineChart.tsx
+: Uses recharts to render a Line Chart showing the volume of applications submitted per day. Ensure the wrapping container has minWidth: 0, minHeight: 0 to prevent Recharts layout warnings.
+
+CompanyBarChart.tsx
+: Uses recharts to render a Stacked Bar Chart. Group applications by Company. Split the bars into two stacks:
+Active (Purple fill)
+Rejected (Red fill - for unsuccessful/ghosted statuses).
+
+RecentApplicationsTable.tsx
+: A sleek HTML table listing all applications. It must include a functional toggle button in its header (using React useState and 'use client') to collapse/expand the entire table.
+Please write the code for these files step-by-step, ensuring the styling feels expensive and the data fetching is strictly server-side."

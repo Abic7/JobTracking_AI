@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+
+  :root,[data-theme="dark"]{
+    --g:#00ff96;--gdim:rgba(0,255,150,.13);--gglow:rgba(0,255,150,.5);
+    --bg:#060a0f;--card:rgba(255,255,255,.04);--cardh:rgba(255,255,255,.08);
+    --bd:rgba(255,255,255,.09);--tx:rgba(255,255,255,.85);--dm:rgba(255,255,255,.36);
+    --grid:rgba(0,255,150,.025);--rad:rgba(0,255,150,.05);
+    --tbg:rgba(255,255,255,.07);--tbd:rgba(255,255,255,.12);--ttx:rgba(255,255,255,.44);
+  }
+  [data-theme="light"]{
+    --g:#00924f;--gdim:rgba(0,146,79,.1);--gglow:rgba(0,146,79,.32);
+    --bg:#eef1f6;--card:#fff;--cardh:#fff;
+    --bd:rgba(0,0,0,.08);--tx:rgba(0,0,0,.82);--dm:rgba(0,0,0,.4);
+    --grid:rgba(0,146,79,.03);--rad:rgba(0,146,79,.035);
+    --tbg:rgba(0,0,0,.05);--tbd:rgba(0,0,0,.1);--ttx:rgba(0,0,0,.42);
+  }
+
+  html{overflow:auto}
+  body{
+    background:var(--bg);color:var(--tx);
+    font-family:'Syne',sans-serif;
+    min-height:100vh;min-width:fit-content;
+    padding:52px 48px 64px;
+    transition:background .3s,color .3s;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(ellipse 70% 45% at 50% -5%,var(--rad) 0%,transparent 55%),
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:100% 100%,80px 80px,80px 80px;
+  }
+
+  .toggle{
+    position:fixed;top:20px;right:20px;z-index:999;
+    display:flex;align-items:center;gap:7px;
+    background:var(--tbg);border:1px solid var(--tbd);
+    border-radius:40px;padding:7px 15px;cursor:pointer;
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    color:var(--ttx);letter-spacing:1px;
+    transition:all .2s;user-select:none;backdrop-filter:blur(8px);
+  }
+  .toggle:hover{border-color:var(--g);color:var(--g)}
+
+  h1{
+    text-align:center;font-size:12px;letter-spacing:6px;text-transform:uppercase;
+    color:var(--g);font-family:'JetBrains Mono',monospace;margin-bottom:36px;
+    opacity:0;animation:up .5s .1s forwards;
+  }
+
+  /* ═══════════════════════════════════════════
+     OUTER: label column (120px) + canvas (808px)
+     Canvas cols: C1=80 C2=296 C3=512 C4=728
+  ═══════════════════════════════════════════ */
+  .outer{
+    display:flex;
+    gap:16px;
+    width:944px; /* 120 label + 16 gap + 808 canvas */
+    margin:0 auto;
+    align-items:flex-start;
+  }
+
+  /* LEFT LABEL COLUMN */
+  .labels{
+    width:120px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .lbl{
+    font-size:9px;letter-spacing:2.5px;text-transform:uppercase;
+    color:var(--dm);font-family:'JetBrains Mono',monospace;
+    text-align:right;line-height:1.3;
+    opacity:0;transition:color .3s;
+    /* vertical alignment is set via JS after render */
+  }
+
+  /* RIGHT CANVAS */
+  .canvas{
+    width:808px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ── NODE ── */
+  .node{
+    width:160px;flex-shrink:0;
+    background:var(--card);border:1px solid var(--bd);
+    border-radius:12px;padding:16px 12px;text-align:center;
+    position:relative;opacity:0;
+    transition:border-color .25s,box-shadow .25s,background .3s;cursor:default;
+  }
+  .node:hover{background:var(--cardh);border-color:var(--gglow);box-shadow:0 0 20px var(--gdim)}
+  [data-theme="light"] .node{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+  [data-theme="light"] .node:hover{box-shadow:0 4px 18px rgba(0,146,79,.14)}
+
+  .nt{border-color:rgba(0,255,150,.35)}.nd{border-color:rgba(80,160,255,.25)}
+  .nl{border-color:rgba(255,175,0,.28)}.no{border-color:rgba(150,100,255,.28)}
+  .ns{border-color:rgba(0,255,150,.22)}
+  [data-theme="light"] .nt{border-color:rgba(0,146,79,.45)}
+  [data-theme="light"] .nd{border-color:rgba(30,110,255,.3)}
+  [data-theme="light"] .nl{border-color:rgba(200,120,0,.32)}
+  [data-theme="light"] .no{border-color:rgba(110,60,220,.3)}
+  [data-theme="light"] .ns{border-color:rgba(0,146,79,.3)}
+
+  .node::before{
+    content:'';position:absolute;top:-1px;left:50%;
+    transform:translateX(-50%);width:32px;height:2px;
+    border-radius:2px;opacity:0;transition:opacity .25s;
+  }
+  .nt::before{background:var(--g)}.nd::before{background:#4090ff}
+  .nl::before{background:#ffb400}.no::before{background:#9664ff}
+  .ns::before{background:var(--g)}.node:hover::before{opacity:1}
+
+  .ico{font-size:24px;margin-bottom:6px;display:block}
+  .nm{font-size:12px;font-weight:700;color:var(--tx);margin-bottom:3px;transition:color .3s}
+  .sub{font-size:9px;color:var(--dm);font-family:'JetBrains Mono',monospace;line-height:1.5;transition:color .3s}
+
+  .badge{
+    position:absolute;top:-9px;right:-6px;
+    font-size:8px;font-weight:700;padding:2px 7px;
+    border-radius:20px;font-family:'JetBrains Mono',monospace;white-space:nowrap;
+  }
+  .bg{background:var(--g);color:#000}.ba{background:#ffb400;color:#000}.bp{background:#9664ff;color:#fff}
+
+  /* ── ROW of nodes ── */
+  .row{display:flex;align-items:center;width:808px}
+
+  /* ── H ARROW: 56px, zero padding ── */
+  .ah{
+    width:56px;flex-shrink:0;height:16px;
+    display:flex;align-items:center;position:relative;opacity:0;
+  }
+  .ah .line{flex:1;height:1.5px;background:linear-gradient(90deg,var(--gdim),var(--gglow))}
+  .ah .head{
+    width:0;height:0;flex-shrink:0;
+    border-top:4px solid transparent;border-bottom:4px solid transparent;
+    border-left:7px solid var(--g);filter:drop-shadow(0 0 3px var(--g));
+  }
+  .ah .dot{
+    position:absolute;width:6px;height:6px;
+    background:var(--g);border-radius:50%;box-shadow:0 0 7px var(--g);
+    top:50%;transform:translateY(-50%);left:0;
+    animation:pr 2s linear infinite;
+  }
+  @keyframes pr{0%{left:2%;opacity:1}87%{left:90%;opacity:1}100%{left:90%;opacity:0}}
+  .ah.rev{flex-direction:row-reverse}
+  .ah.rev .line{background:linear-gradient(270deg,var(--gdim),var(--gglow))}
+  .ah.rev .head{border-left:none;border-right:7px solid var(--g)}
+  .ah.rev .dot{animation:pl 2s linear infinite}
+  @keyframes pl{0%{left:90%;opacity:1}87%{left:2%;opacity:1}100%{left:2%;opacity:0}}
+
+  /* ── V CONNECTOR ──
+     height: exactly the gap we want (28px looks tight)
+     position:relative, av fills it 100% top-to-bottom
+     NO margin, NO padding on .conn itself
+  ── */
+  .conn{
+    width:808px;
+    height:28px; /* ONLY this controls the gap between rows */
+    position:relative;
+    opacity:0;
+    flex-shrink:0;
+  }
+  .conn .av{
+    position:absolute;top:0;bottom:0;
+    display:flex;flex-direction:column;align-items:center;
+    transform:translateX(-50%);
+  }
+  .conn .av .vline{
+    width:1.5px;flex:1;
+    background:linear-gradient(180deg,var(--gdim),var(--gglow));
+  }
+  .conn .av .vhead{
+    width:0;height:0;
+    border-left:4px solid transparent;border-right:4px solid transparent;
+    border-top:7px solid var(--g);filter:drop-shadow(0 0 3px var(--g));
+  }
+  .conn .av .dot{
+    position:absolute;width:6px;height:6px;
+    background:var(--g);border-radius:50%;box-shadow:0 0 7px var(--g);
+    left:50%;transform:translateX(-50%);top:0;
+    animation:pd 2s linear infinite;
+  }
+  @keyframes pd{0%{top:2%;opacity:1}87%{top:92%;opacity:1}100%{top:92%;opacity:0}}
+
+  /* LOOP */
+  .loop{
+    display:flex;justify-content:center;margin-top:14px;
+    opacity:0;animation:up .5s 2.8s forwards;
+  }
+  .loop span{
+    font-size:10px;color:var(--g);font-family:'JetBrains Mono',monospace;letter-spacing:2px;
+    padding:5px 20px;border:1px dashed rgba(0,255,150,.3);border-radius:20px;
+    transition:color .3s,border-color .3s;
+  }
+  [data-theme="light"] .loop span{border-color:rgba(0,146,79,.35)}
+
+  /* LEGEND */
+  .legend{
+    display:flex;gap:18px;justify-content:center;flex-wrap:wrap;
+    margin-top:40px;opacity:0;animation:up .5s 3.0s forwards;
+  }
+  .li{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dm);font-family:'JetBrains Mono',monospace;transition:color .3s}
+  .ld{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+  @keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+  .d01{animation:up .4s .10s forwards}.d02{animation:up .4s .22s forwards}
+  .d03{animation:up .4s .32s forwards}.d04{animation:up .4s .42s forwards}
+  .d05{animation:up .4s .52s forwards}.d06{animation:up .4s .62s forwards}
+  .d07{animation:up .4s .72s forwards}.d08{animation:up .4s .82s forwards}
+  .d09{animation:up .4s .93s forwards}.d10{animation:up .4s 1.04s forwards}
+  .d11{animation:up .4s 1.15s forwards}.d12{animation:up .4s 1.26s forwards}
+  .d13{animation:up .4s 1.37s forwards}.d14{animation:up .4s 1.50s forwards}
+  .d15{animation:up .4s 1.63s forwards}.d16{animation:up .4s 1.76s forwards}
+  .d17{animation:up .4s 1.89s forwards}.d18{animation:up .4s 2.02s forwards}
+  .d19{animation:up .4s 2.15s forwards}.d20{animation:up .4s 2.28s forwards}
+  .d21{animation:up .4s 2.41s forwards}.d22{animation:up .4s 2.54s forwards}
+</style>
+</head>
+<body>
+
+<button class="toggle" onclick="toggleTheme()">
+  <span id="tico">☀️</span><span id="tlbl">LIGHT</span>
+</button>
+
+<h1>⚡ Job Application Tracker — System Architecture</h1>
+
+<div class="outer">
+
+  <!-- LEFT: stage labels, positioned by JS -->
+  <div class="labels" id="lblCol">
+    <div class="lbl d01" id="lbl1">01 · Trigger &amp;<br>Data Fetch</div>
+    <div class="lbl d10" id="lbl2">02 · Extraction &amp;<br>AI Classification</div>
+    <div class="lbl d17" id="lbl3">03 · Output</div>
+    <div class="lbl d20" id="lbl4">04 · Self-Learning<br>Loop</div>
+  </div>
+
+  <!-- RIGHT: diagram canvas -->
+  <div class="canvas" id="cvs">
+
+    <!-- ROW 1 -->
+    <div class="row" id="row1">
+      <div class="node nt d02">
+        <span class="ico">⚡</span><div class="nm">Manual Trigger</div><div class="sub">n8n</div>
+      </div>
+      <div class="ah d03"><div class="line"></div><div class="head"></div><div class="dot"></div></div>
+      <div class="node nd d04">
+        <span class="ico">📋</span><div class="nm">Senders Sheet</div><div class="sub">Known domains</div>
+        <div class="badge bg">Auto-Learning</div>
+      </div>
+      <div class="ah d05"><div class="line"></div><div class="head"></div><div class="dot"></div></div>
+      <div class="node nd d06">
+        <span class="ico">🧠</span><div class="nm">Build Query</div><div class="sub">Dynamic Gmail filter</div>
+      </div>
+      <div class="ah d07"><div class="line"></div><div class="head"></div><div class="dot"></div></div>
+      <div class="node nd d08">
+        <span class="ico">✉️</span><div class="nm">Gmail API</div><div class="sub">messages.list · All IDs</div>
+        <div class="badge ba">Bypasses Threading</div>
+      </div>
+    </div>
+
+    <!-- CONN 1→2: C4=728 -->
+    <div class="conn d09" id="conn1">
+      <div class="av" style="left:728px">
+        <div class="vline"></div><div class="vhead"></div><div class="dot"></div>
+      </div>
+    </div>
+
+    <!-- ROW 2: spacer + Classify(C2) ← LLM(C3) ← Fetch+Parse(C4) -->
+    <div class="row" id="row2">
+      <div style="width:216px;flex-shrink:0"></div>
+      <div class="node nl d11">
+        <span class="ico">🏷️</span><div class="nm">Classify</div><div class="sub">Applied · Interview · ❌</div>
+      </div>
+      <div class="ah rev d12"><div class="line"></div><div class="head"></div><div class="dot"></div></div>
+      <div class="node nl d13">
+        <span class="ico">🤖</span><div class="nm">Local LLM</div><div class="sub">LM Studio · On-Device</div>
+        <div class="badge ba">On-Device</div>
+      </div>
+      <div class="ah rev d14"><div class="line"></div><div class="head"></div><div class="dot"></div></div>
+      <div class="node nd d15">
+        <span class="ico">🔍</span><div class="nm">Fetch + Parse</div><div class="sub">Base64 · HTML strip</div>
+      </div>
+    </div>
+
+    <!-- CONN 2→3: C2=296 -->
+    <div class="conn d16" id="conn2">
+      <div class="av" style="left:296px">
+        <div class="vline"></div><div class="vhead"></div><div class="dot"></div>
+      </div>
+    </div>
+
+    <!-- ROW 3: Results Sheet at C2 -->
+    <div class="row" id="row3">
+      <div style="width:216px;flex-shrink:0"></div>
+      <div class="node no d18">
+        <span class="ico">🗂️</span><div class="nm">Results Sheet</div><div class="sub">Clear · Append · Sorted</div>
+        <div class="badge bp">Google Sheets</div>
+      </div>
+      <div style="flex:1"></div>
+    </div>
+
+    <!-- CONN 3→4: C2=296 -->
+    <div class="conn d19" id="conn3">
+      <div class="av" style="left:296px">
+        <div class="vline"></div><div class="vhead"></div><div class="dot"></div>
+      </div>
+    </div>
+
+    <!-- ROW 4: Extract → Update Senders -->
+    <div class="row" id="row4">
+      <div style="width:216px;flex-shrink:0"></div>
+      <div class="node ns d21">
+        <span class="ico">🔎</span><div class="nm">Extract New Senders</div><div class="sub">Detect unknown domains</div>
+      </div>
+      <div class="ah d22"><div class="line"></div><div class="head"></div><div class="dot"></div></div>
+      <div class="node ns" style="opacity:0;animation:up .4s 2.60s forwards">
+        <span class="ico">💾</span><div class="nm">Update Senders</div><div class="sub">Appends new domains</div>
+        <div class="badge bg">↩ Back to Step 01</div>
+      </div>
+      <div style="flex:1"></div>
+    </div>
+
+    <div class="loop"><span>♻️ &nbsp;SELF-IMPROVING — every run makes the next run smarter</span></div>
+
+  </div><!-- end canvas -->
+</div><!-- end outer -->
+
+<div class="legend">
+  <div class="li"><div class="ld" style="background:#00c070"></div>n8n / Trigger</div>
+  <div class="li"><div class="ld" style="background:#4090ff"></div>Google APIs</div>
+  <div class="li"><div class="ld" style="background:#ffb400"></div>Local AI (LM Studio)</div>
+  <div class="li"><div class="ld" style="background:#9664ff"></div>Google Sheets Output</div>
+  <div class="li"><div class="ld" style="background:#00c070"></div>Self-Learning Loop</div>
+</div>
+
+<script>
+  /* Vertically align each label to the centre of its corresponding row */
+  function alignLabels(){
+    const cvs   = document.getElementById('cvs');
+    const lblCol= document.getElementById('lblCol');
+    const cvsTop= cvs.getBoundingClientRect().top + window.scrollY;
+
+    const pairs = [
+      ['lbl1','row1'],['lbl2','row2'],['lbl3','row3'],['lbl4','row4']
+    ];
+
+    pairs.forEach(([lId,rId])=>{
+      const lbl = document.getElementById(lId);
+      const row = document.getElementById(rId);
+      if(!lbl||!row) return;
+      const rRect = row.getBoundingClientRect();
+      const rowTop = rRect.top + window.scrollY - cvsTop;
+      const rowMid = rowTop + rRect.height/2;
+      lbl.style.position = 'absolute';
+      lbl.style.top = (rowMid - lbl.offsetHeight/2) + 'px';
+    });
+
+    lblCol.style.position='relative';
+  }
+
+  /* Run after fonts/layout settle */
+  window.addEventListener('load', alignLabels);
+  window.addEventListener('resize', alignLabels);
+  setTimeout(alignLabels, 300);
+
+  function toggleTheme(){
+    const html=document.documentElement,dark=html.getAttribute('data-theme')==='dark';
+    html.setAttribute('data-theme',dark?'light':'dark');
+    document.getElementById('tico').textContent=dark?'🌙':'☀️';
+    document.getElementById('tlbl').textContent=dark?'DARK':'LIGHT';
+    localStorage.setItem('theme',dark?'light':'dark');
+  }
+  const s=localStorage.getItem('theme');
+  if(s){
+    document.documentElement.setAttribute('data-theme',s);
+    if(s==='light'){document.getElementById('tico').textContent='🌙';document.getElementById('tlbl').textContent='DARK';}
+  }
+</script>
+</body>
+</html>

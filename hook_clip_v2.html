@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hook Clip</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;700;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#060a0f; width:1080px; height:1080px;
+    overflow:hidden; font-family:'Inter',sans-serif;
+    display:flex; align-items:center; justify-content:center; position:relative;
+  }
+  .grid {
+    position:absolute; inset:0;
+    background-image: linear-gradient(rgba(0,255,150,0.03) 1px,transparent 1px), linear-gradient(90deg,rgba(0,255,150,0.03) 1px,transparent 1px);
+    background-size:60px 60px; animation:gridScroll 10s linear infinite;
+  }
+  @keyframes gridScroll { to { transform:translateY(60px); } }
+  .scanline {
+    position:absolute; inset:0; pointer-events:none; z-index:30;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);
+  }
+
+  /* PHASE 1 — 0 to 2s: CLEAR PROBLEM */
+  .phase-1 {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    animation:p1out 0.4s 2.1s forwards;
+  }
+  @keyframes p1out { to { opacity:0; transform:scale(0.97); } }
+  .p1-eyebrow {
+    font-size:14px; letter-spacing:7px; text-transform:uppercase;
+    color:rgba(255,255,255,0.3); font-weight:300; margin-bottom:24px;
+    animation:up 0.5s 0.05s both;
+  }
+  .p1-headline {
+    font-family:'Bebas Neue',sans-serif; font-size:100px;
+    line-height:0.88; text-align:center; color:#fff;
+    animation:up 0.4s 0.15s both;
+  }
+  .p1-headline .red { color:#ff4444; text-shadow:0 0 40px rgba(255,68,68,0.45); display:block; }
+  .p1-body {
+    margin-top:28px; font-size:20px; color:rgba(255,255,255,0.38);
+    font-weight:300; line-height:1.65; text-align:center;
+    animation:up 0.4s 0.3s both;
+  }
+  .p1-body em { color:rgba(255,255,255,0.65); font-style:normal; }
+  @keyframes up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+  /* PHASE 2 — 2 to 3.6s: SPREADSHEET CHAOS */
+  .phase-2 {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    opacity:0; animation:p2in 0.35s 2.1s forwards, p2out 0.4s 3.5s forwards;
+  }
+  @keyframes p2in  { from{opacity:0;transform:scale(1.03)} to{opacity:1;transform:scale(1)} }
+  @keyframes p2out { to{opacity:0;transform:scale(0.95) translateY(-8px)} }
+  .sheet-wrap { position:relative; animation:shake 1s 2.6s ease-in-out; }
+  @keyframes shake {
+    0%,100%{transform:rotate(0)} 20%{transform:rotate(-0.8deg)}
+    40%{transform:rotate(1.3deg)} 60%{transform:rotate(-0.7deg)} 80%{transform:rotate(0.4deg)}
+  }
+  .sheet {
+    width:600px; border:1px solid rgba(255,255,255,0.07); border-radius:10px;
+    overflow:hidden; background:rgba(255,255,255,0.022);
+  }
+  .sh-title {
+    background:rgba(255,255,255,0.05); padding:10px 16px;
+    font-size:11px; color:rgba(255,255,255,0.3); letter-spacing:2px;
+    border-bottom:1px solid rgba(255,255,255,0.05); font-family:monospace;
+  }
+  .sh-head {
+    display:grid; grid-template-columns:85px 160px 150px 120px;
+    padding:8px 16px; border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .sh-head span { font-size:10px; color:rgba(255,255,255,0.22); letter-spacing:2px; text-transform:uppercase; }
+  .sh-row {
+    display:grid; grid-template-columns:85px 160px 150px 120px;
+    padding:9px 16px; border-bottom:1px solid rgba(255,255,255,0.03);
+    font-size:12px; color:rgba(255,255,255,0.48);
+  }
+  .sh-row .d { color:rgba(255,255,255,0.25); font-size:11px; font-family:monospace; }
+  .red    { color:#ff5555; }
+  .yellow { color:#ffd060; }
+  .grey   { color:rgba(255,255,255,0.22); font-style:italic; }
+  .stamp {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%) rotate(-12deg) scale(0);
+    font-family:'Bebas Neue',sans-serif; font-size:104px;
+    color:#ff3333; border:7px solid #ff3333; padding:8px 34px;
+    opacity:0; white-space:nowrap; z-index:10;
+    text-shadow:0 0 30px rgba(255,51,51,0.6);
+    box-shadow:0 0 50px rgba(255,51,51,0.18);
+    animation:stampIn 0.22s 3.05s cubic-bezier(0.2,0.8,0.2,1.3) forwards;
+  }
+  @keyframes stampIn {
+    0%  { transform:translate(-50%,-50%) rotate(-12deg) scale(2.8); opacity:0; }
+    65% { transform:translate(-50%,-50%) rotate(-12deg) scale(0.93); opacity:1; }
+    100%{ transform:translate(-50%,-50%) rotate(-12deg) scale(1);    opacity:1; }
+  }
+
+  /* PHASE 3 — 3.6s+: SOLUTION */
+  .phase-3 {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    opacity:0; animation:p3in 0.65s 3.8s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  @keyframes p3in { from{opacity:0;transform:scale(1.04)} to{opacity:1;transform:scale(1)} }
+  .orb {
+    position:absolute; width:680px; height:680px; border-radius:50%;
+    background:radial-gradient(circle,rgba(0,255,120,0.08) 0%,transparent 65%);
+    opacity:0; animation:p3in 0.5s 3.8s forwards, orbp 3s 4.3s ease-in-out infinite;
+  }
+  @keyframes orbp { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
+  .corner {
+    position:absolute; width:48px; height:48px;
+    border-color:rgba(0,255,150,0.32); border-style:solid;
+    opacity:0; animation:p3in 0.4s 3.9s both;
+  }
+  .c-tl{top:36px;left:36px;border-width:2px 0 0 2px}
+  .c-tr{top:36px;right:36px;border-width:2px 2px 0 0}
+  .c-bl{bottom:36px;left:36px;border-width:0 0 2px 2px}
+  .c-br{bottom:36px;right:36px;border-width:0 2px 2px 0}
+  .so-i {
+    font-size:22px; letter-spacing:8px; text-transform:uppercase;
+    color:rgba(255,255,255,0.35); font-weight:300; margin-bottom:10px;
+    animation:up 0.45s 4.0s both; position:relative; z-index:2;
+  }
+  .auto {
+    font-family:'Bebas Neue',sans-serif; font-size:148px; line-height:0.85;
+    letter-spacing:6px; color:#00ff96; position:relative; z-index:2;
+    text-shadow:0 0 40px rgba(0,255,150,0.7),0 0 90px rgba(0,255,150,0.3);
+    animation:up 0.45s 4.1s both, glow 2s 4.6s ease-in-out infinite;
+  }
+  @keyframes glow {
+    0%,100%{text-shadow:0 0 40px rgba(0,255,150,0.7),0 0 80px rgba(0,255,150,0.3)}
+    50%    {text-shadow:0 0 70px rgba(0,255,150,1),  0 0 130px rgba(0,255,150,0.55)}
+  }
+  .itall {
+    font-family:'Bebas Neue',sans-serif; font-size:148px; line-height:0.85;
+    letter-spacing:6px; color:#fff; position:relative; z-index:2;
+    animation:up 0.45s 4.25s both;
+  }
+  .stack {
+    margin-top:30px; font-size:14px; letter-spacing:5px; text-transform:uppercase;
+    color:rgba(255,255,255,0.28); font-weight:300; position:relative; z-index:2;
+    animation:up 0.45s 4.5s both;
+  }
+  .stack b { color:rgba(0,255,150,0.6); font-weight:400; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="scanline"></div>
+
+  <!-- PHASE 1: Punchy problem statement first -->
+  <div class="phase-1">
+    <div class="p1-eyebrow">Job hunting in 2026</div>
+    <div class="p1-headline">
+      50+ job applications.
+      <span class="red">TRACKED MANUALLY?</span>
+    </div>
+    <div class="p1-body">
+      Copying into spreadsheets. Missing emails.<br>
+      <em>No idea what's happening. Every. Single. Day.</em>
+    </div>
+  </div>
+
+  <!-- PHASE 2: Chaotic spreadsheet + ENOUGH stamp -->
+  <div class="phase-2">
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="sh-title">job_applications_v7_FINAL_real_v2.xlsx</div>
+        <div class="sh-head">
+          <span>Date</span><span>Company</span><span>Role</span><span>Status</span>
+        </div>
+        <div class="sh-row"><span class="d">14 Jan</span><span>Company A</span><span>Data Engineer</span><span class="grey">???</span></div>
+        <div class="sh-row"><span class="d">17 Jan</span><span>Company B</span><span>ML Engineer</span><span class="yellow">Maybe?</span></div>
+        <div class="sh-row"><span class="d">22 Jan</span><span>Company C</span><span>Analytics Lead</span><span class="grey">forgot...</span></div>
+        <div class="sh-row"><span class="d">28 Jan</span><span>Company D</span><span>BI Developer</span><span class="red">ghosted?</span></div>
+        <div class="sh-row"><span class="d">03 Feb</span><span>Company E</span><span>AI Engineer</span><span class="grey">🤷 no idea</span></div>
+        <div class="sh-row"><span class="d">07 Feb</span><span>Company F</span><span>Data Analyst</span><span class="yellow">check later??</span></div>
+        <div class="sh-row"><span class="d">11 Feb</span><span>Company G</span><span>Senior Analyst</span><span class="grey">???</span></div>
+      </div>
+      <div class="stamp">ENOUGH!</div>
+    </div>
+  </div>
+
+  <!-- PHASE 3: Solution -->
+  <div class="phase-3">
+    <div class="orb"></div>
+    <div class="corner c-tl"></div><div class="corner c-tr"></div>
+    <div class="corner c-bl"></div><div class="corner c-br"></div>
+    <div class="so-i">So I</div>
+    <div class="auto">AUTOMATED</div>
+    <div class="itall">IT ALL</div>
+    <div class="stack"><b>AI</b> · <b>n8n</b> · <b>Gmail</b> · <b>Google Sheets</b></div>
+  </div>
+</body>
+</html>

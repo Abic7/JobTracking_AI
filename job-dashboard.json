@@ -1,0 +1,668 @@
+{
+  "name": "job-dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "\n// Add any manually tracked applications here\n// These will be merged with Gmail results every run\nconst manualEntries = [\n  {\n    Date:        '2026-02-09',\n    Sender:      'Telstra',\n    SenderEmail: 'noreply@team.telstra.com',\n    Subject:     'Interview',\n    Message:     'Interview confirmation',\n    Category:    'Interview'\n  },\n  // Add more manual entries here as needed:\n  // {\n  //   Date:        'YYYY-MM-DD',\n  //   Sender:      'Company Name',\n  //   SenderEmail: 'email@company.com',\n  //   Subject:     'Subject line',\n  //   Message:     'Brief description',\n  //   Category:    'Applied / Interview / Unsuccessful'\n  // },\n];\n\nreturn manualEntries.map(e => ({ json: e }));\n"
+      },
+      "id": "b7b5b832-3e12-4478-bf1b-9346893abd28",
+      "name": "Manual Entries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        384
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "02b303f1-d033-452b-a6eb-fe59ac8bcc45",
+      "name": "Merge Gmail + Manual",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        400,
+        176
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "17f2OPnRnwsEshbQj2sQ4bhA89Wr8nAyGhwg-Qe37pxI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Senders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17f2OPnRnwsEshbQj2sQ4bhA89Wr8nAyGhwg-Qe37pxI/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1136,
+        -64
+      ],
+      "id": "0953d257-e34a-4b38-be03-13fcdcccde08",
+      "name": "Read Known Senders6",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FXgrxHoXq0E8ByUB",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst senderItems = $input.all();\n\nconst knownSenders = senderItems\n  .map(item => item.json.Sender || item.json.sender || '')\n  .filter(s => s && s.length > 2)\n  .map(s => {\n    const cleaned = s.trim().toLowerCase();\n    return cleaned.includes('@') ? cleaned.split('@')[1] : cleaned;\n  })\n  .filter(Boolean);\n\nconst uniqueDomains = [...new Set(knownSenders)];\n\nconst subjectTerms = [\n  '\"thank you for your application\"',\n  '\"thank you for applying\"',\n  '\"thanks for applying\"',\n  '\"thanks for your interest\"',\n  '\"thank you for your interest\"',\n  '\"application received\"',\n  '\"application submitted\"',\n  '\"successfully submitted\"',\n  '\"receipt confirmation\"',\n  '\"we have received your\"',\n  '\"we\\'ve received your\"',\n  '\"viewed your application\"',\n  '\"your application for\"',\n  '\"job application\"',\n  '\"job opportunity\"',\n  '\"application confirmation\"',\n  '\"application acknowledgment\"',\n  '\"application acknowledgement\"',\n  '\"your application has been\"',\n  '\"application for the position\"',\n  '\"application for the role\"',\n  '\"unsuccessful job application\"',\n  '\"not been successful\"',\n  '\"regret to inform\"',\n  '\"no longer recruiting\"',\n];\n\nconst subjectPart = subjectTerms.map(t => `subject:(${t})`).join(' OR ');\nconst fromPart = uniqueDomains.length > 0\n  ? uniqueDomains.map(d => `from:(${d})`).join(' OR ')\n  : '';\n\nconst fullQuery = fromPart\n  ? `(${subjectPart} OR ${fromPart}) after:2025/12/01`\n  : `(${subjectPart}) after:2025/12/01`;\n\nconsole.log(`Query built with ${uniqueDomains.length} known domains`);\nreturn [{ json: { gmailQuery: fullQuery, knownDomains: uniqueDomains } }];\n"
+      },
+      "id": "0dadcd5e-03f7-43b2-8710-91f7d8983b45",
+      "name": "Build Gmail Query6",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/messages?q={{ encodeURIComponent($json.gmailQuery) }}&maxResults=500",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "options": {}
+      },
+      "id": "4c9afffe-9301-4606-b518-0d4cf45a75f8",
+      "name": "Gmail API - List Message IDs2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -800,
+        192
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "rkBMnasFVWvLnRAU",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst response = $input.first().json;\nconst messages = response.messages || [];\nconsole.log(`Found ${messages.length} individual messages (not thread-grouped)`);\nif (messages.length === 0) {\n  return [{ json: { messageId: null, _noMessages: true } }];\n}\nreturn messages.map(msg => ({ json: { messageId: msg.id } }));\n"
+      },
+      "id": "288fe3cb-c45e-4553-a8d5-24b29fbbe668",
+      "name": "Split Message IDs2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "id": "c7d8e9f0-a1b2-4c3d-8e4f-5a6b7c8d9e0f",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -448,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/messages/{{ $json.messageId }}?format=full",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "options": {}
+      },
+      "id": "77909ce8-387b-4214-83cc-52d82a4e770e",
+      "name": "Gmail API - Fetch Full Message2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -256,
+        176
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "rkBMnasFVWvLnRAU",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\nconst results = [];\n\nfunction decodeBase64Url(str) {\n  if (!str) return '';\n  try {\n    const b64 = str.replace(/-/g, '+').replace(/_/g, '/');\n    return Buffer.from(b64, 'base64').toString('utf-8');\n  } catch (_) { return ''; }\n}\n\nfunction extractBody(payload) {\n  let html = '', text = '';\n  if (!payload) return { html, text };\n  const mime = payload.mimeType || '';\n  if (mime === 'text/html' && payload.body && payload.body.data) html = decodeBase64Url(payload.body.data);\n  else if (mime === 'text/plain' && payload.body && payload.body.data) text = decodeBase64Url(payload.body.data);\n  if (payload.parts) {\n    for (const part of payload.parts) {\n      const sub = extractBody(part);\n      if (sub.html) html = sub.html;\n      if (sub.text && !text) text = sub.text;\n    }\n  }\n  return { html, text };\n}\n\nfor (const item of items) {\n  const msg = item.json;\n  if (!msg || !msg.payload) continue;\n\n  const headers = {};\n  (msg.payload.headers || []).forEach(h => { headers[h.name.toLowerCase()] = h.value; });\n\n  let dateReceived = 'Unknown';\n  try {\n    const raw = headers['date'] || msg.internalDate;\n    if (raw) {\n      const parsed = typeof raw === 'string' ? new Date(raw) : new Date(parseInt(raw));\n      if (!isNaN(parsed)) {\n        dateReceived = parsed.toLocaleDateString('en-CA', {\n          timeZone: 'Australia/Melbourne',\n          year: 'numeric', month: '2-digit', day: '2-digit'\n        });\n      }\n    }\n  } catch (_) {}\n\n  const rawFrom = (headers['from'] || '').replace(/^from:\\s*/i, '').trim();\n  let sender = 'Unknown', senderEmail = '';\n  if (rawFrom) {\n    const emailMatch = rawFrom.match(/<([^>]+)>/);\n    senderEmail = emailMatch ? emailMatch[1].toLowerCase() : rawFrom.toLowerCase();\n    const nameMatch = rawFrom.match(/^\"?([^\"<]+?)\"?\\s*<[^>]+>$/);\n    sender = nameMatch ? nameMatch[1].trim() : senderEmail;\n  }\n\n  const subject = headers['subject'] || '(No Subject)';\n  const { html: rawHtml, text: rawText } = extractBody(msg.payload);\n\n  let message = '';\n  if (rawHtml) {\n    message = rawHtml\n      .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n      .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n      .replace(/<[^>]*>/g, ' ')\n      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')\n      .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '\"').replace(/&apos;/g, \"'\")\n      .replace(/&#96;/g, '`').replace(/&#8226;/g, ' ').replace(/&#169;/g, '')\n      .replace(/&#[0-9]+;/g, ' ').replace(/&[a-z]+;/g, ' ')\n      .replace(/\\s+/g, ' ').trim();\n  } else if (rawText) {\n    message = rawText.replace(/\\s+/g, ' ').trim();\n  } else if (msg.snippet) {\n    message = msg.snippet;\n  }\n\n  const msgForLLM = message.length > 1500 ? message.slice(0, 1500) + '...' : message;\n  const messagesJson = JSON.stringify([\n    { role: 'system', content: `Classify this job application email. Output ONE word only on the final line: Applied, Interview, or Unsuccessful.\n\nPriority order (check in this order, stop at first match):\n\n1. UNSUCCESSFUL — email contains: not selected, not successful, will not be progressing, regret to inform, regret to advise, no longer recruiting, position closed, role filled, moving forward with other candidates\n\n2. INTERVIEW — email contains: interview, phone screen, video interview, schedule a time, book a time, assessment, next stage, shortlisted\n\n3. APPLIED — email contains: application received, application submitted, successfully submitted, viewed your application, reviewing applications, under review, thank you for applying, we will be in touch, we are reviewing\n\nYour response MUST end with exactly one of these three words on its own line:\nApplied\nInterview\nUnsuccessful` },\n    { role: 'user', content: `Subject: ${subject}\\n\\nMessage:\\n${msgForLLM}` }\n  ]);\n\n  results.push({ json: { dateReceived, sender, senderEmail, subject, message, msgForLLM, messagesJson } });\n}\nreturn results;\n"
+      },
+      "id": "b6510fa8-b389-40a3-a886-775b5e3cbf7a",
+      "name": "Extract & Clean Email Fields13",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.50.230:1234/v1/chat/completions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"openai/gpt-oss-20b\",\"stream\":false,\"temperature\":0.0,\"max_tokens\":2000,\"messages\":{{ $json.messagesJson }}}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "aaea542b-1d73-49f6-91c5-2852df9cf626",
+      "name": "LM Studio - Categorise Email14",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        64,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const llmItems = $input.all();\nconst emailItems = $('Extract & Clean Email Fields13').all();\n\nreturn llmItems.map((item, i) => {\n  const email = emailItems[i] ? emailItems[i].json : {};\n  let category = 'Unknown';\n  try {\n    const choice = item.json?.choices?.[0];\n    const content   = (choice?.message?.content   || '').trim();\n    const reasoning = (choice?.message?.reasoning || '').trim();\n    const raw = content !== '' ? content : reasoning;\n    const lines = raw.split('\\n').map(l => l.trim()).filter(l => l.length > 0);\n    const lastWord = (lines[lines.length - 1] || '').replace(/[^a-zA-Z]/g, '').toLowerCase();\n    if      (lastWord === 'applied')      category = 'Applied';\n    else if (lastWord === 'interview')    category = 'Interview';\n    else if (lastWord === 'unsuccessful') category = 'Unsuccessful';\n    else {\n      const fullText = raw.toLowerCase();\n      if      (/\\binterview\\b/.test(fullText)) category = 'Interview';\n      else if (/unsuccessful|not.{0,20}selected|not.{0,20}progressing|no longer.{0,20}recruit|regret|unfortunately/.test(fullText)) category = 'Unsuccessful';\n      else if (/applied|received|under review|reviewing|acknowledge|submitted|viewed your application/.test(fullText)) category = 'Applied';\n    }\n  } catch (_) {}\n  return {\n    json: {\n      Date:        email.dateReceived || '',\n      Sender:      email.sender       || '',\n      SenderEmail: email.senderEmail  || '',\n      Subject:     email.subject      || '',\n      Message:     (email.message || '').replace(/\\r?\\n/g, ' ').replace(/\"/g, \"'\").slice(0, 500),\n      Category:    category\n    }\n  };\n});"
+      },
+      "id": "a99d414e-1a61-4e93-90f4-41f93539aa58",
+      "name": "Combine Email + Category15",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        240
+      ],
+      "id": "e1f2a3b4-c5d6-7e8f-9a0b-1c2d3e4f5a6b",
+      "name": "Wait 5s (batch pause)",
+      "webhookId": "b8c9d0e1-f2a3-4b5c-6d7e-8f9a0b1c2d3e"
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "1WrGJXM9kjts4MLk--QJDcBpDq6DKFbHaMUUbhYPe8Cg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        688,
+        -16
+      ],
+      "id": "2d4a6a11-83a6-4e98-a1a7-0e55a4ed177c",
+      "name": "Clear Results Sheet6",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FXgrxHoXq0E8ByUB",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1WrGJXM9kjts4MLk--QJDcBpDq6DKFbHaMUUbhYPe8Cg",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.Date }}",
+            "Sender": "={{ $json.Sender }}",
+            "Subject": "={{ $json.Subject }}",
+            "Message": "={{ $json.Message }}",
+            "Category": "={{ $json.Category }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        752,
+        240
+      ],
+      "id": "62b7d715-4e6a-4e91-ba1f-ee53db24b5db",
+      "name": "Write Results to Sheet6",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FXgrxHoXq0E8ByUB",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst emailItems = $('Combine Email + Category15').all();\nconst knownItems = $('Read Known Senders6').all();\nconst knownSet = new Set(\n  knownItems\n    .map(item => (item.json.Sender || item.json.sender || '').toLowerCase().trim())\n    .filter(s => s.length > 0)\n);\n\nconst newDomains = [];\nconst skip = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','live.com'];\n\nfor (const item of emailItems) {\n  const senderEmail = (item.json.SenderEmail || '').toLowerCase().trim();\n  if (!senderEmail.includes('@')) continue;\n  const domain = senderEmail.split('@')[1];\n  if (!domain || skip.includes(domain) || knownSet.has(domain)) continue;\n  if (!newDomains.includes(domain)) {\n    newDomains.push(domain);\n    knownSet.add(domain);\n  }\n}\n\nif (newDomains.length === 0) return [{ json: { _noNewSenders: true, count: 0 } }];\nreturn newDomains.map(domain => ({ json: { Sender: domain } }));\n"
+      },
+      "id": "8948bb68-5e4e-44eb-9ace-02ca604f6c22",
+      "name": "Find New Senders6",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json._noNewSenders }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "493d7e87-12d9-49c6-980d-2e151b148be6",
+      "name": "Has New Senders?3",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "17f2OPnRnwsEshbQj2sQ4bhA89Wr8nAyGhwg-Qe37pxI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Senders"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sender": "={{ $json.Sender }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1248,
+        64
+      ],
+      "id": "accf9e7a-010a-4d67-ac39-20cb63d4aebd",
+      "name": "Update Senders Sheet6",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FXgrxHoXq0E8ByUB",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        512,
+        -16
+      ],
+      "id": "3a62ea18-5ed3-4562-b5dc-49d041da91d3",
+      "name": "Wait",
+      "webhookId": "c5f6c5a0-a6a2-4496-8780-56e8f41a099a"
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        592,
+        240
+      ],
+      "id": "306cd66c-75d8-4f6f-87f9-92e293e23430",
+      "name": "Wait1",
+      "webhookId": "c5f6c5a0-a6a2-4496-8780-56e8f41a099a"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Entries": {
+      "main": [
+        [
+          {
+            "node": "Merge Gmail + Manual",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Gmail + Manual": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Known Senders6": {
+      "main": [
+        [
+          {
+            "node": "Build Gmail Query6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gmail Query6": {
+      "main": [
+        [
+          {
+            "node": "Gmail API - List Message IDs2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail API - List Message IDs2": {
+      "main": [
+        [
+          {
+            "node": "Split Message IDs2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Message IDs2": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Gmail API - Fetch Full Message2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Gmail + Manual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail API - Fetch Full Message2": {
+      "main": [
+        [
+          {
+            "node": "Extract & Clean Email Fields13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Clean Email Fields13": {
+      "main": [
+        [
+          {
+            "node": "LM Studio - Categorise Email14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LM Studio - Categorise Email14": {
+      "main": [
+        [
+          {
+            "node": "Combine Email + Category15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Email + Category15": {
+      "main": [
+        [
+          {
+            "node": "Wait 5s (batch pause)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5s (batch pause)": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Results Sheet6": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Results to Sheet6": {
+      "main": [
+        [
+          {
+            "node": "Find New Senders6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find New Senders6": {
+      "main": [
+        [
+          {
+            "node": "Has New Senders?3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New Senders?3": {
+      "main": [
+        [
+          {
+            "node": "Update Senders Sheet6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Clear Results Sheet6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Write Results to Sheet6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cf2ddd8b-f409-4463-a0e9-aaab43440331",
+  "meta": {
+    "instanceId": "ff93b4d3fa84f863a3a6df84a0853f469c40db33d50feb384ee916c273d266bb"
+  },
+  "id": "oVRUewvVdS7tBvGN",
+  "tags": []
+}
