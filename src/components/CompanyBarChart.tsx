@@ -110,7 +110,7 @@ export default function CompanyBarChart({ applications }: CompanyBarChartProps) 
             />
             <Bar dataKey="applied"      name="Applied"      stackId="a" fill="#3b82f6" />
             <Bar dataKey="interviewing" name="Interviewing"  stackId="a" fill="#f59e0b" />
-            <Bar dataKey="rejected"     name="Rejected"      stackId="a" fill="#f43f5e" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="rejected"     name="Unsuccessful"      stackId="a" fill="#f43f5e" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

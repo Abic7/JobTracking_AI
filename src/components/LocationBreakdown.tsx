@@ -66,7 +66,7 @@ export default function LocationBreakdown({ applications }: { applications: Appl
                 color: 'var(--text-primary)',
                 fontSize: '0.875rem',
               }}
-              formatter={(value: number) => [value, 'Applications']}
+              formatter={(value: number | string | undefined) => [value ?? 0, 'Applications']}
             />
             <Bar dataKey="count" name="Applications" radius={[0, 4, 4, 0]}>
               {data.map((_, i) => (

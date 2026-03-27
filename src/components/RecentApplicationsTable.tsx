@@ -6,7 +6,7 @@ import { ApplicationRow } from '@/lib/mock-data';
 type SortKey = 'company' | 'role' | 'dateApplied' | 'location' | 'status' | 'age';
 type SortDir = 'asc' | 'desc';
 
-const STATUS_OPTIONS = ['All', 'Applied', 'Interviewing', 'OA/Technical', 'Offer', 'Rejected', 'Ghosted'];
+const STATUS_OPTIONS = ['All', 'Applied', 'Interviewing', 'OA/Technical', 'Offer', 'Unsuccessful', 'Ghosted'];
 const PAGE_SIZE = 20;
 
 function getDaysAgo(dateStr: string): number | null {

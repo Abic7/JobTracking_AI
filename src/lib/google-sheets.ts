@@ -6,6 +6,11 @@ type SheetRow = [string, string, string, string, string, string, string, ...stri
 
 export async function getJobApplications(): Promise<ApplicationRow[]> {
     try {
+        if (process.env.DEMO_MODE === "true") {
+            console.info("ℹ️ DEMO_MODE enabled. Serving mock data.");
+            return generateMockData(75);
+        }
+
         const spreadsheetId = process.env.GOOGLE_OAUTH_SPREADSHEET_ID;
         const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
         const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"); // Handle newline chars in Vercel/env vars
@@ -26,10 +31,10 @@ export async function getJobApplications(): Promise<ApplicationRow[]> {
 
         const sheets = google.sheets({ version: "v4", auth });
 
-        // Ensure range matches your sheet name and columns A to F
+        // Columns written by n8n: A=MessageId, B=Date, C=Sender, D=SenderEmail, E=Subject, F=Message, G=Category
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: "Sheet1!A2:F",
+            range: "Sheet1!A2:G",
         });
 
         const rows = response.data.values as SheetRow[];
@@ -39,14 +44,22 @@ export async function getJobApplications(): Promise<ApplicationRow[]> {
             return [];
         }
 
-        const applications: ApplicationRow[] = rows.map((row) => {
-            // A (0) - Date
-            // B (1) - Sender
-            // C (2) - SenderEmail
-            // F (5) - Category
+        const seenIds = new Set<string>();
+        const applications: ApplicationRow[] = rows.flatMap((row) => {
+            const messageId = row[0] || "";
+            if (messageId && seenIds.has(messageId)) return [];
+            if (messageId) seenIds.add(messageId);
 
-            let companyName = row[1] || "Unknown";
-            const senderEmail = (row[2] || "").toLowerCase();
+            // A (0) - MessageId
+            // B (1) - Date
+            // C (2) - Sender
+            // D (3) - SenderEmail
+            // E (4) - Subject
+            // F (5) - Message
+            // G (6) - Category
+
+            let companyName = row[2] || "Unknown";
+            const senderEmail = (row[3] || "").toLowerCase();
 
             // Further clean up common senders to consolidate companies on the dashboard
             if (companyName.includes('SEEK')) companyName = 'SEEK / Recruiter';
@@ -57,16 +70,16 @@ export async function getJobApplications(): Promise<ApplicationRow[]> {
             else if (companyName.includes('Deloitte Recruitment')) companyName = 'Deloitte';
             else companyName = companyName.replace("From: ", "").replace(/['"]/g, '').trim();
 
-            return {
-                dateApplied: row[0] || "",
+            return [{
+                dateApplied: row[1] || "",
                 company: companyName,
-                role: "", // No longer available
+                role: row[4] || "",
                 email: senderEmail,
-                notes: row[2] || "",
-                status: row[5] || "Applied", // Category is now F
+                notes: row[5] || "",
+                status: row[6] || "Applied",
                 link: "",
                 location: "",
-            };
+            }];
         });
 
         // Optionally sort by date here if not sorted in sheet

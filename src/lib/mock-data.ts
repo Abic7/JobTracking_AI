@@ -13,7 +13,7 @@ const statuses = [
   "Applied",
   "Interviewing",
   "Offer",
-  "Rejected",
+  "Unsuccessful",
   "Ghosted",
   "OA/Technical"
 ];
@@ -68,7 +68,7 @@ export function generateMockData(count: number = 50): ApplicationRow[] {
     if (rand > 0.95)                        status = "Offer";
     else if (rand > 0.85)                   status = "Interviewing";
     else if (rand > 0.75)                   status = "OA/Technical";
-    else if (rand > 0.40)                   status = "Rejected";
+    else if (rand > 0.40)                   status = "Unsuccessful";
     else if (rand > 0.20 && daysAgo > 30)   status = "Ghosted";
 
     const company = companies[Math.floor(Math.random() * companies.length)];

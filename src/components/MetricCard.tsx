@@ -12,6 +12,8 @@ interface MetricCardProps {
   icon?: React.ReactNode;
   accentColor?: string;
   goal?: number;
+  onClick?: () => void;
+  isActive?: boolean;
 }
 
 function useCountUp(target: number, durationMs = 1000, delayMs = 0) {
@@ -46,7 +48,7 @@ function useCountUp(target: number, durationMs = 1000, delayMs = 0) {
 
 export default function MetricCard({
   title, value, trendValue, trendIsPositive, trendLabel,
-  delay = 0, icon, accentColor, goal,
+  delay = 0, icon, accentColor, goal, onClick, isActive,
 }: MetricCardProps) {
   const numericValue = typeof value === 'number' ? value : parseFloat(String(value));
   const isInteger = Number.isInteger(numericValue);
@@ -89,7 +91,14 @@ export default function MetricCard({
   return (
     <div
       className={`glass-panel metric-card animate-fade-in ${delayClass}`}
-      style={{ minWidth: '155px', flex: '1 1 0', height: '100%', display: 'flex', flexDirection: 'column' }}
+      onClick={onClick}
+      style={{
+        minWidth: '155px', flex: '1 1 0', height: '100%', display: 'flex', flexDirection: 'column',
+        cursor: onClick ? 'pointer' : undefined,
+        outline: isActive ? `2px solid ${accentColor || 'var(--accent-blue)'}` : undefined,
+        outlineOffset: '-2px',
+        boxShadow: isActive ? `0 0 16px ${accentColor || 'var(--accent-blue)'}44` : undefined,
+      }}
     >
       {/* Colored top accent bar */}
       {accentColor && (

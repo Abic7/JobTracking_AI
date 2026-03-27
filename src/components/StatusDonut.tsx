@@ -36,7 +36,7 @@ const STATUS_CONFIG = [
     match: (s: string) => s.includes('offer'),
   },
   {
-    label: 'Rejected',
+    label: 'Unsuccessful',
     color: '#f43f5e',
     match: (s: string) => s.includes('reject') || s.includes('unsuccessful'),
   },
@@ -119,7 +119,7 @@ export default function StatusDonut({ applications }: StatusDonutProps) {
                 color: 'var(--text-primary)',
                 fontSize: '0.875rem',
               }}
-              formatter={(value: number, name: string) => [value, name]}
+              formatter={(value: number | string | undefined, name: string | undefined) => [value ?? 0, name ?? '']} 
             />
             <Legend
               iconType="circle"
