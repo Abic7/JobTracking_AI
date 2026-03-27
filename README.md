@@ -4,6 +4,8 @@ A premium dark-mode dashboard for tracking a job search in real time. Data lives
 
 Built with Next.js App Router, TypeScript, Tailwind CSS v4, and Recharts.
 
+<img width="2029" height="1221" alt="image" src="https://github.com/user-attachments/assets/be5a8cc3-c381-4926-9eb8-a9cdf09ac77d" />
+
 ---
 
 ## Features
